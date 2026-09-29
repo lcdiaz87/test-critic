@@ -1,0 +1,50 @@
+{
+  "name": "test-critic",
+  "version": "0.1.0",
+  "description": "Find tests that cannot fail: static analysis for Jest, Vitest and Playwright test suites.",
+  "keywords": [
+    "testing",
+    "static-analysis",
+    "jest",
+    "vitest",
+    "playwright",
+    "test-quality",
+    "ast",
+    "cli"
+  ],
+  "license": "MIT",
+  "author": "Luis Carlos Díaz Chamorro",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lcdiaz87/test-critic.git"
+  },
+  "type": "module",
+  "bin": {
+    "test-critic": "dist/bin.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm run lint && npm test"
+  },
+  "dependencies": {
+    "tinyglobby": "^0.2.17"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.4",
+    "eslint": "^10.11.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.70.1",
+    "vitest": "^5.0.2"
+  }
+}
