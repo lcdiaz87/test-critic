@@ -77,6 +77,12 @@ Los fixtures están excluidos de tsc, ESLint y de la búsqueda de tests de Vites
 3. Las 5 reglas restantes, una a una, cada una con sus fixtures.
 4. Formatos de salida (`--json`, `sarif`) + GitHub Actions que corre los tests y ejecuta la CLI sobre los fixtures.
 5. Capa `--llm` opcional, aislada, degradando limpiamente sin API key.
+6. *(Opcional, después del MVP.)* Exponer test-critic como servidor MCP, para que un agente que genera tests pueda auditarlos antes de entregarlos.
+
+**Al cerrar la fase 2**, antes de empezar la 3, crear en `.claude/`:
+
+- **Skill `/new-rule`:** fija el procedimiento para añadir una regla (fichero en `src/rules/`, fixtures que disparan y limpios, test de las dos direcciones, registro en el motor, fila en la tabla del README). Se crea a partir del patrón real de las tres primeras reglas, no antes.
+- **Agente `fp-hunter`:** subagente con contexto propio cuyo único objetivo es escribir código de test *correcto* que una regla marque por error. Cada caso que encuentre se convierte en fixture limpio y en un arreglo de la regla. Va aparte porque quien escribe la regla comparte sus puntos ciegos.
 
 ## Flujo de trabajo
 
@@ -84,4 +90,5 @@ Los fixtures están excluidos de tsc, ESLint y de la búsqueda de tests de Vites
 - `npm run check` (typecheck + lint + tests) debe pasar antes de entregar una fase.
 - Node >= 22 (la 20 ya no tiene soporte). TypeScript fijado en 6.0.x porque typescript-eslint aún no soporta TS 7; `@types/node` sigue la versión mayor mínima de Node.
 - Estructura: `src/` (código), `test/` (tests de Vitest), `test/fixtures/` (se analizan, nunca se ejecutan), `src/bin.ts` es el ejecutable, `src/cli.ts` exporta un `main(argv, io)` testeable.
+- En Windows, `npm test` debe lanzarse desde una ruta con la letra de unidad en mayúscula (`C:\...`). Con `c:\...` Vitest carga dos veces sus propios módulos y todas las suites fallan con `Cannot read properties of undefined (reading 'config')`.
 - Los tests corren en Node y ejecutan el TypeScript de `src/` directamente; `dist/` (lo que se publica) solo se prueba en el CI de la fase 4.

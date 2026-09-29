@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm ci)",
+      "Bash(npm install)",
+      "PowerShell(npm run *)",
+      "PowerShell(npm ci)",
+      "PowerShell(npm install)"
+    ]
+  }
+}
