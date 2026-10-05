@@ -1,10 +1,10 @@
-import { findCommentedTests } from '../engine/commented-tests.js';
 import type { Rule, RuleHit } from './rule.js';
 
 /**
  * A skipped test never runs, so it cannot catch a regression, however good its assertions are.
  *
- * Only declarations are reported: `it.skip(...)`, `xit(...)`, `it.todo(...)`, `describe.skip(...)`, Playwright's `test.fixme(...)`, and commented-out tests.
+ * Only declarations are reported: `it.skip(...)`, `xit(...)`, `it.todo(...)`, `describe.skip(...)` and Playwright's `test.fixme(...)`.
+ * Commented-out tests are planned for V2 (see ROADMAP-V2.md).
  * Runtime skips such as Playwright's `test.skip(browserName === 'webkit', 'reason')` or Vitest's `it.skipIf(cond)` are conditional by design and are not reported.
  *
  * Severity is `warning`: skipping is often deliberate and temporary, and a CI pipeline should not break because of it.
@@ -37,19 +37,6 @@ export const skippedTest: Rule = {
             ? 'This test is a placeholder with no body, so it cannot catch a regression.'
             : 'This test is skipped, so it never runs and cannot catch a regression.',
         makesTestUnableToFail: true,
-      });
-    }
-
-    for (const commented of findCommentedTests(context.sourceFile)) {
-      hits.push({
-        pos: commented.pos,
-        title: commented.title,
-        message:
-          commented.testCount === 1
-            ? 'This test is commented out, so it never runs and cannot catch a regression.'
-            : `These ${String(commented.testCount)} tests are commented out, so they never run and cannot catch a regression.`,
-        // A commented-out test is not code, so it is not among the tests analysed and does not move the percentage.
-        makesTestUnableToFail: false,
       });
     }
     return hits;

@@ -46,7 +46,7 @@ Este patrón es especialmente frecuente en tests generados por IA: la suite est�
 | `conditional-assertion` | La aserción está dentro de un `if`, un ternario o un `try` y puede no ejecutarse nunca. |
 | `missing-await` | Una llamada que devuelve una Promise sin `await`, incluidos `expect(...).resolves` y las APIs de Playwright. |
 | `swallowed-error` | Un `catch` vacío, o uno que solo hace `console.log` sin relanzar el error ni hacer ninguna aserción. |
-| `skipped-test` | `.skip`, `.todo`, `xit`, `xdescribe` o tests comentados. |
+| `skipped-test` | `.skip`, `.todo`, `.fixme`, `xit` o `xdescribe`. |
 
 Otras reglas útiles, como selectores frágiles o suites sin tests de error, quedan para una versión posterior: un test con esos problemas sí puede fallar, así que no ayudan a medir lo que mide esta herramienta.
 Están descritas en [ROADMAP-V2.md](ROADMAP-V2.md).
@@ -73,7 +73,6 @@ Con la prioridad de cero falsos positivos, varias decisiones dejan pasar casos r
 - **`expect(obj.prop).toBe(obj.prop)` no se reporta.** Leer una propiedad dos veces puede ejecutar un getter dos veces, y comprobar que un getter memoizado devuelve la misma instancia es un test legítimo que sí puede fallar. Con variables simples (`expect(x).toBe(x)`) no hay esa ambigüedad.
 - **Si un fichero define su propio `it` o `test`**, sus llamadas no se tratan como tests: no sabemos qué hacen. Las importaciones, incluido `require`, sí se aceptan.
 - **Un fichero con errores de sintaxis se salta entero** y se avisa por stderr. El parser de TypeScript siempre devuelve un árbol aunque el código esté roto, y analizar un árbol a medias es la forma más fácil de inventarse hallazgos.
-- **Un test comentado solo se reporta si el comentario, a partir de alguna línea, es código válido formado únicamente por declaraciones de tests.** `// TODO: test('large input')` no es código válido, y `// Usage: it('x', () => {})` se parsea como una sentencia con etiqueta, no como un test. Los bloques JSDoc no se inspeccionan nunca.
 - **Los skips condicionales no se reportan:** `test.skip(browserName === 'webkit', 'motivo')` en Playwright o `it.skipIf(cond)` en Vitest son decisiones deliberadas según el entorno.
 
 ## Uso
@@ -94,7 +93,6 @@ La salida por defecto es una tabla seguida de un resumen de una línea:
 
 Un test cuenta como *cannot fail* cuando está saltado (incluidos los que están dentro de una suite saltada) o cuando tiene un hallazgo que, por sí solo, demuestra que no puede fallar.
 No todos los hallazgos lo demuestran: una aserción tautológica junto a otra real se reporta, pero el test sigue pudiendo fallar gracias a la otra, así que no cuenta.
-Los tests comentados se reportan, pero no están en el total de tests analizados porque no son código.
 
 | Código de salida | Significado |
 | --- | --- |

@@ -7,7 +7,7 @@ import { collectTests, type TestCase } from './test-inventory.js';
 
 export interface FileAnalysis {
   file: string;
-  /** Test declarations found in the file (commented-out tests are not code and are not counted). */
+  /** Test declarations found in the file. */
   testCount: number;
   /** Tests that are skipped or have at least one finding that alone proves they cannot fail. */
   cannotFailCount: number;

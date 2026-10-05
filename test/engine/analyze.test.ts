@@ -20,23 +20,6 @@ describe('analyzeSources', () => {
     expect(result.files.map((file) => file.findings.map((finding) => finding.ruleId))).toEqual([['no-assertion'], []]);
   });
 
-  it('does not mistake comment-like text inside JSX for a commented-out test', () => {
-    // Read as trivia, the JSX text below would be the comment `// it('x', function () { })`, a valid test declaration.
-    const text = [
-      "it('shows code', () => {",
-      '  expect(',
-      '    <p>',
-      "      // it('x', function () { })",
-      '    </p>,',
-      '  ).toBeTruthy();',
-      '});',
-      '',
-    ].join('\n');
-    const result = analyzeSources([{ file: 'docs.test.tsx', text }]);
-    expect(result.parseFailures).toEqual([]);
-    expect(result.files[0]?.findings).toEqual([]);
-  });
-
   it('sorts findings by position and reports 1-based lines and columns', () => {
     const [file] = analyzeSources([
       { file: 'a.test.ts', text: "it('second', () => {});\nit.skip('first', () => {});\n" },
