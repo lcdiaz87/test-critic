@@ -10,7 +10,7 @@ Built to audit AI-generated test suites, it favours zero false positives over re
 
 ---
 
-> **Estado:** en desarrollo. La CLI ya lee argumentos y encuentra ficheros; las reglas se están implementando.
+> **Estado:** en desarrollo. Ya funcionan `no-assertion`, `tautological-assertion` y `skipped-test` con la salida en tabla; el resto de reglas y los formatos `json` y `sarif` se están implementando.
 > Todavía no está publicado en npm.
 
 ## El problema
@@ -23,7 +23,7 @@ it('parses the config', async () => {
   try {
     const config = parseConfig(raw);
     if (config.valid) {
-      expect(config.port).toBe(config.port);
+      expect(config).toEqual(config);
     }
   } catch (e) {
     console.log(e);
@@ -41,8 +41,8 @@ Este patrón es especialmente frecuente en tests generados por IA: la suite est�
 
 | Regla | Qué detecta |
 | --- | --- |
-| `no-assertion` | El cuerpo del test no contiene ninguna aserción alcanzable. |
-| `tautological-assertion` | Una aserción que siempre pasa: `expect(true).toBe(true)`, `expect(x).toBe(x)`, un literal comparado consigo mismo. |
+| `no-assertion` | El cuerpo del test no contiene ninguna aserción. |
+| `tautological-assertion` | Una aserción que siempre pasa: `expect(true).toBe(true)`, `expect(x).toBe(x)`, `expect(1).toBeTruthy()`. |
 | `conditional-assertion` | La aserción está dentro de un `if`, un ternario o un `try` y puede no ejecutarse nunca. |
 | `missing-await` | Una llamada que devuelve una Promise sin `await`, incluidos `expect(...).resolves` y las APIs de Playwright. |
 | `swallowed-error` | Un `catch` vacío, o uno que solo hace `console.log` sin relanzar el error ni hacer ninguna aserción. |
@@ -51,6 +51,29 @@ Este patrón es especialmente frecuente en tests generados por IA: la suite est�
 | `happy-path-only` | Un fichero o suite sin ningún test del camino de error: ningún `rejects`, ningún `toThrow`, ninguna aserción sobre un fallo. |
 
 Cada hallazgo indica el id de la regla, la severidad (`error` o `warning`), el fichero, la línea, la columna, el nombre del test y una frase explicando por qué importa.
+
+### Qué cuenta como aserción
+
+`no-assertion` es estricta: las acciones que *podrían* lanzar un error (`page.click()`, `getByRole()`, llamar al código bajo prueba) no cuentan como aserción.
+Si un test solo hace clic en botones, pasa aunque la página muestre datos incorrectos.
+
+Sí cuentan:
+
+- Llamadas a `expect`, `assert` o `should` en cualquier punto de la cadena: `expect(x).toBe(y)`, `assert.equal(a, b)`, `sinon.assert.calledOnce(spy)`, `x.should.equal(y)`.
+- Helpers que siguen la convención `expect*` / `assert*`, como `expectValidUser(user)`.
+- Funciones del mismo fichero que a su vez hacen una aserción o lanzan un error.
+- Un `throw` explícito.
+- Un callback `done` que puede recibir un error: `done(err)`, `done.fail()` o pasarlo a otra función (`server.close(done)`). Un `done()` sin argumentos solo dice "he terminado" y no comprueba nada.
+
+### Por qué algunas cosas no se reportan
+
+Con la prioridad de cero falsos positivos, varias decisiones dejan pasar casos reales a propósito:
+
+- **`expect(obj.prop).toBe(obj.prop)` no se reporta.** Leer una propiedad dos veces puede ejecutar un getter dos veces, y comprobar que un getter memoizado devuelve la misma instancia es un test legítimo que sí puede fallar. Con variables simples (`expect(x).toBe(x)`) no hay esa ambigüedad.
+- **Si un fichero define su propio `it` o `test`**, sus llamadas no se tratan como tests: no sabemos qué hacen. Las importaciones, incluido `require`, sí se aceptan.
+- **Un fichero con errores de sintaxis se salta entero** y se avisa por stderr. El parser de TypeScript siempre devuelve un árbol aunque el código esté roto, y analizar un árbol a medias es la forma más fácil de inventarse hallazgos.
+- **Un test comentado solo se reporta si el comentario, a partir de alguna línea, es código válido formado únicamente por declaraciones de tests.** `// TODO: test('large input')` no es código válido, y `// Usage: it('x', () => {})` se parsea como una sentencia con etiqueta, no como un test. Los bloques JSDoc no se inspeccionan nunca.
+- **Los skips condicionales no se reportan:** `test.skip(browserName === 'webkit', 'motivo')` en Playwright o `it.skipIf(cond)` en Vitest son decisiones deliberadas según el entorno.
 
 ## Uso
 
@@ -68,7 +91,9 @@ La salida por defecto es una tabla seguida de un resumen de una línea:
 120 tests analysed · 34 cannot fail (28%) · 51 findings across 8 rules
 ```
 
-Un test cuenta como *cannot fail* cuando está saltado (`skip`), o cuando tiene al menos un hallazgo de `no-assertion`, `tautological-assertion`, `conditional-assertion`, `missing-await` o `swallowed-error`.
+Un test cuenta como *cannot fail* cuando está saltado (incluidos los que están dentro de una suite saltada) o cuando tiene un hallazgo que, por sí solo, demuestra que no puede fallar.
+No todos los hallazgos lo demuestran: una aserción tautológica junto a otra real se reporta, pero el test sigue pudiendo fallar gracias a la otra, así que no cuenta.
+Los tests comentados se reportan, pero no están en el total de tests analizados porque no son código.
 `fragile-selector` y `happy-path-only` se reportan como hallazgos pero no cuentan para ese porcentaje: un test con un selector frágil sí puede fallar, el problema es que puede fallar por el motivo equivocado.
 
 | Código de salida | Significado |

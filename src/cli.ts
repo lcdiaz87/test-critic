@@ -1,6 +1,11 @@
 import { readFileSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { parseCliArgs, UsageError, USAGE, type CliOptions } from './args.js';
 import { discoverFiles } from './discover.js';
+import { analyzeSources } from './engine/analyze.js';
+import { formatSummary, formatTable } from './report/table.js';
+import { isAtLeast } from './types.js';
 
 export const EXIT_OK = 0;
 export const EXIT_FINDINGS = 1;
@@ -41,16 +46,46 @@ async function run(options: CliOptions, io: CliIO): Promise<number> {
     io.stderr('test-critic: --llm is not available yet; running deterministic analysis only.\n');
   }
 
+  if (options.format !== 'table') {
+    io.stderr(`test-critic: --format=${options.format} is not implemented yet.\n`);
+    return EXIT_FAILURE;
+  }
+
   const files = await discoverFiles(options.patterns, io.cwd);
   if (files.length === 0) {
     io.stderr(`test-critic: No test files matched: ${options.patterns.join(' ')}\n`);
     return EXIT_FAILURE;
   }
 
-  // Analysis is not implemented yet; report what would be analysed.
-  io.stdout(`${String(files.length)} file${files.length === 1 ? '' : 's'} matched:\n`);
-  for (const file of files) io.stdout(`  ${file}\n`);
-  return EXIT_OK;
+  const sources = await Promise.all(
+    files.map(async (file) => ({ file, text: await readFile(join(io.cwd, file), 'utf8') })),
+  );
+  const result = analyzeSources(sources);
+
+  for (const failure of result.parseFailures) {
+    io.stderr(`test-critic: Skipped ${failure.file}: syntax error on line ${String(failure.line)} (${failure.message})\n`);
+  }
+
+  const findings = result.files
+    .flatMap((file) => file.findings)
+    .filter((finding) => isAtLeast(finding.severity, options.minSeverity));
+
+  if (findings.length > 0) io.stdout(`${formatTable(findings)}\n\n`);
+  io.stdout(
+    `${formatSummary({
+      tests: sum(result.files.map((file) => file.testCount)),
+      // The headline counts every test that cannot fail, whatever --min-severity hides from the table.
+      cannotFail: sum(result.files.map((file) => file.cannotFailCount)),
+      findings: findings.length,
+      rules: new Set(findings.map((finding) => finding.ruleId)).size,
+    })}\n`,
+  );
+
+  return findings.some((finding) => finding.severity === 'error') ? EXIT_FINDINGS : EXIT_OK;
+}
+
+function sum(values: readonly number[]): number {
+  return values.reduce((total, value) => total + value, 0);
 }
 
 function readVersion(): string {

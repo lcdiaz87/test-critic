@@ -41,8 +41,11 @@ Ver `src/types.ts`.
 
 ### Decisiones ya tomadas
 
-- **Recuento "cannot fail"** (porcentaje del resumen): un test cuenta si está **saltado** o tiene un hallazgo de `no-assertion`, `tautological-assertion`, `conditional-assertion`, `missing-await` o `swallowed-error`. `fragile-selector` y `happy-path-only` generan hallazgos pero no cuentan.
-- **`no-assertion` es estricta:** un test sin aserción explícita es `error`, aunque haga acciones que puedan lanzar (p. ej. `click()` o `getBy*` de Playwright). Las aserciones implícitas no cuentan.
+- **Recuento "cannot fail"** (porcentaje del resumen): un test cuenta si está **saltado** (también por estar dentro de una suite saltada) o tiene un hallazgo que *por sí solo* demuestra que no puede fallar (`RuleHit.makesTestUnableToFail`). Ejemplo: una tautología junto a una aserción real se reporta pero no cuenta. `fragile-selector` y `happy-path-only` generan hallazgos pero nunca cuentan. Los tests comentados se reportan pero no entran en el total (no son código).
+- **`no-assertion` es estricta:** un test sin aserción explícita es `error`, aunque haga acciones que puedan lanzar (p. ej. `click()` o `getBy*` de Playwright). Las aserciones implícitas no cuentan. Sí cuentan: `expect`/`assert`/`should` en la cadena del callee, helpers `expect*`/`assert*`, funciones del mismo fichero que aseveran o lanzan, `throw`, y `done(err)` / `done.fail` / pasar `done` a otra función (no en tests `.each`). Ver `src/engine/assertions.ts`.
+- **`tautological-assertion` no reporta accesos a propiedades** (`expect(a.b).toBe(a.b)`): un getter memoizado hace que sea un test legítimo. Solo literales y la misma variable simple en los dos lados.
+- **Ficheros con errores de sintaxis se saltan** con aviso por stderr; nunca se analizan árboles a medias.
+- **Un `it`/`test`/`describe` declarado localmente en el fichero** (no importado ni `require`) no se trata como runner.
 - **`missing-await` es sintáctica,** no usa el type checker: solo patrones conocidos (`expect().resolves/rejects`, matchers async de Playwright, métodos de `page`/`locator`, funciones `async` declaradas en el mismo fichero). Funciona en JS y sin las dependencias del proyecto auditado.
 - **Tests comentados:** solo se reportan cuando el texto del comentario se parsea como una llamada real `it(...)`/`test(...)`, así que una frase que mencione "test" nunca dispara.
 - `happy-path-only` es un hallazgo de fichero/suite (`testName: null`), severidad `warning`.
@@ -73,7 +76,7 @@ Los fixtures están excluidos de tsc, ESLint y de la búsqueda de tests de Vites
 ## Fases (parar al final de cada una y enseñar el resultado)
 
 1. Andamiaje: repo, TS estricto, Vitest, ESLint, este fichero, README, CLI que parsea argumentos y resuelve globs. **(verificada)**
-2. Motor AST + `no-assertion`, `tautological-assertion`, `skipped-test`, con fixtures y tests. Tabla de salida funcionando.
+2. Motor AST + `no-assertion`, `tautological-assertion`, `skipped-test`, con fixtures y tests. Tabla de salida funcionando. **(en revisión)**
 3. Las 5 reglas restantes, una a una, cada una con sus fixtures.
 4. Formatos de salida (`--json`, `sarif`) + GitHub Actions que corre los tests y ejecuta la CLI sobre los fixtures.
 5. Capa `--llm` opcional, aislada, degradando limpiamente sin API key.
@@ -90,5 +93,7 @@ Los fixtures están excluidos de tsc, ESLint y de la búsqueda de tests de Vites
 - `npm run check` (typecheck + lint + tests) debe pasar antes de entregar una fase.
 - Node >= 22 (la 20 ya no tiene soporte). TypeScript fijado en 6.0.x porque typescript-eslint aún no soporta TS 7; `@types/node` sigue la versión mayor mínima de Node.
 - Estructura: `src/` (código), `test/` (tests de Vitest), `test/fixtures/` (se analizan, nunca se ejecutan), `src/bin.ts` es el ejecutable, `src/cli.ts` exporta un `main(argv, io)` testeable.
+- Motor: `src/engine/parse.ts` (ts-morph en memoria, sin type checker), `test-inventory.ts` (qué llamadas son tests/suites), `assertions.ts` (qué cuenta como aserción), `commented-tests.ts`, `analyze.ts` (ejecuta reglas y convierte `RuleHit` en `Finding`). Las reglas viven en `src/rules/` y se registran en `src/rules/index.ts`; nunca calculan posiciones.
+- Cada fixture limpio debe contener tests (se comprueba `testCount`), si no "cero hallazgos" no demuestra nada.
 - En Windows, `npm test` debe lanzarse desde una ruta con la letra de unidad en mayúscula (`C:\...`). Con `c:\...` Vitest carga dos veces sus propios módulos y todas las suites fallan con `Cannot read properties of undefined (reading 'config')`.
 - Los tests corren en Node y ejecutan el TypeScript de `src/` directamente; `dist/` (lo que se publica) solo se prueba en el CI de la fase 4.
