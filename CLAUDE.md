@@ -23,7 +23,7 @@ Si una regla no se puede implementar sin falsos positivos, **se consulta con qui
 Nunca se relaja en silencio.
 Si un patrón es ambiguo, la regla no dice nada.
 
-## Reglas del MVP (exactamente estas ocho)
+## Reglas del MVP (exactamente estas seis)
 
 | id | qué detecta |
 | --- | --- |
@@ -32,28 +32,30 @@ Si un patrón es ambiguo, la regla no dice nada.
 | `conditional-assertion` | aserción dentro de `if` / ternario / `try`, puede no ejecutarse nunca |
 | `missing-await` | llamada que devuelve Promise sin `await` (incluido `expect(...).resolves` y APIs de Playwright) |
 | `swallowed-error` | `catch` vacío, o que solo hace `console.log` sin relanzar ni aserción |
-| `fragile-selector` | `nth-child`, XPath absoluto, rutas CSS profundas, índices posicionales |
 | `skipped-test` | `.skip`, `.todo`, `xit`, `xdescribe`, tests comentados |
-| `happy-path-only` | fichero/suite sin ningún test de error: cero `rejects`, `toThrow` o aserciones sobre fallo |
+
+`fragile-selector` y `happy-path-only` se aplazaron a V2 porque un test con esos problemas sí puede fallar; ver `ROADMAP-V2.md`.
 
 Cada hallazgo lleva: `ruleId`, `severity` (`error` | `warning`), fichero, línea, columna, nombre del test y una frase de por qué importa.
 Ver `src/types.ts`.
 
 ### Decisiones ya tomadas
 
-- **Recuento "cannot fail"** (porcentaje del resumen): un test cuenta si está **saltado** (también por estar dentro de una suite saltada) o tiene un hallazgo que *por sí solo* demuestra que no puede fallar (`RuleHit.makesTestUnableToFail`). Ejemplo: una tautología junto a una aserción real se reporta pero no cuenta. `fragile-selector` y `happy-path-only` generan hallazgos pero nunca cuentan. Los tests comentados se reportan pero no entran en el total (no son código).
+- **Recuento "cannot fail"** (porcentaje del resumen): un test cuenta si está **saltado** (también por estar dentro de una suite saltada) o tiene un hallazgo que *por sí solo* demuestra que no puede fallar (`RuleHit.makesTestUnableToFail`). Ejemplo: una tautología junto a una aserción real se reporta pero no cuenta. Los tests comentados se reportan pero no entran en el total (no son código).
 - **`no-assertion` es estricta:** un test sin aserción explícita es `error`, aunque haga acciones que puedan lanzar (p. ej. `click()` o `getBy*` de Playwright). Las aserciones implícitas no cuentan. Sí cuentan: `expect`/`assert`/`should` en la cadena del callee, helpers `expect*`/`assert*`, funciones del mismo fichero que aseveran o lanzan, `throw`, y `done(err)` / `done.fail` / pasar `done` a otra función (no en tests `.each`). Ver `src/engine/assertions.ts`.
 - **`tautological-assertion` no reporta accesos a propiedades** (`expect(a.b).toBe(a.b)`): un getter memoizado hace que sea un test legítimo. Solo literales y la misma variable simple en los dos lados.
 - **Ficheros con errores de sintaxis se saltan** con aviso por stderr; nunca se analizan árboles a medias.
 - **Un `it`/`test`/`describe` declarado localmente en el fichero** (no importado ni `require`) no se trata como runner.
 - **`missing-await` es sintáctica,** no usa el type checker: solo patrones conocidos (`expect().resolves/rejects`, matchers async de Playwright, métodos de `page`/`locator`, funciones `async` declaradas en el mismo fichero). Funciona en JS y sin las dependencias del proyecto auditado.
 - **Tests comentados:** solo se reportan cuando el texto del comentario se parsea como una llamada real `it(...)`/`test(...)`, así que una frase que mencione "test" nunca dispara.
-- `happy-path-only` es un hallazgo de fichero/suite (`testName: null`), severidad `warning`.
 - Recuento de tests: cada llamada `it`/`test` cuenta una vez; `it.each(...)` cuenta una vez.
+
+- **Nombre del concepto: "placebo tests"** (en español, "tests placebo"): tienen la forma de un test pero no tienen efecto, siguen en verde haga lo que haga el código. Sustituye a "cannot fail" en README, resumen de la CLI (`120 tests analysed · 34 placebo (28%) · ...`) y nombres internos. Se descartó "fake tests" porque *fake* ya es un tipo de doble de prueba (como mock o stub). El renombrado está pendiente como paso propio.
+- **El proyecto mide, no solo detecta.** `eslint-plugin-jest` ya tiene reglas parecidas (`expect-expect`, `no-conditional-expect`, `no-disabled-tests`, `valid-expect`); lo que aporta test-critic es el porcentaje de tests placebo de una suite y el estudio sobre tests generados por IA. El README tendrá una sección "¿Por qué no basta con eslint-plugin-jest?".
 
 ### Pendiente de decidir
 
-- **Corpus para el número publicado:** antes de la fase 4 hay que parar y proponer opciones (qué aplicaciones, qué modelo, qué prompt, cómo documentarlo para que el número sea defendible). Propuesta a discutir: validar los hallazgos de test-critic contra mutation testing (Stryker) sobre las mismas apps, para medir la precisión con una referencia externa. Puede afectar a si `conditional-assertion` cuenta como "cannot fail".
+- **Corpus para el número publicado:** antes de la fase 4 hay que parar y proponer opciones (qué aplicaciones, qué modelo, qué prompt, cómo documentarlo para que el número sea defendible). Propuesta a discutir: validar los hallazgos de test-critic contra mutation testing (Stryker) sobre las mismas apps, para medir la precisión con una referencia externa, y pasar también `eslint-plugin-jest` sobre el mismo corpus para comparar. Puede afectar a si `conditional-assertion` cuenta como placebo.
 
 ## Contrato de la CLI
 
@@ -77,7 +79,7 @@ Los fixtures están excluidos de tsc, ESLint y de la búsqueda de tests de Vites
 
 1. Andamiaje: repo, TS estricto, Vitest, ESLint, este fichero, README, CLI que parsea argumentos y resuelve globs. **(verificada)**
 2. Motor AST + `no-assertion`, `tautological-assertion`, `skipped-test`, con fixtures y tests. Tabla de salida funcionando. **(en revisión)**
-3. Las 5 reglas restantes, una a una, cada una con sus fixtures.
+3. Las 3 reglas restantes (`conditional-assertion`, `missing-await`, `swallowed-error`), una a una, cada una con sus fixtures.
 4. Formatos de salida (`--json`, `sarif`) + GitHub Actions que corre los tests y ejecuta la CLI sobre los fixtures.
 5. Capa `--llm` opcional, aislada, degradando limpiamente sin API key.
 6. *(Opcional, después del MVP.)* Exponer test-critic como servidor MCP, para que un agente que genera tests pueda auditarlos antes de entregarlos.

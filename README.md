@@ -46,9 +46,10 @@ Este patrón es especialmente frecuente en tests generados por IA: la suite est�
 | `conditional-assertion` | La aserción está dentro de un `if`, un ternario o un `try` y puede no ejecutarse nunca. |
 | `missing-await` | Una llamada que devuelve una Promise sin `await`, incluidos `expect(...).resolves` y las APIs de Playwright. |
 | `swallowed-error` | Un `catch` vacío, o uno que solo hace `console.log` sin relanzar el error ni hacer ninguna aserción. |
-| `fragile-selector` | Selectores por `nth-child`, XPath absolutos, rutas CSS profundas o índices posicionales. |
 | `skipped-test` | `.skip`, `.todo`, `xit`, `xdescribe` o tests comentados. |
-| `happy-path-only` | Un fichero o suite sin ningún test del camino de error: ningún `rejects`, ningún `toThrow`, ninguna aserción sobre un fallo. |
+
+Otras reglas útiles, como selectores frágiles o suites sin tests de error, quedan para una versión posterior: un test con esos problemas sí puede fallar, así que no ayudan a medir lo que mide esta herramienta.
+Están descritas en [ROADMAP-V2.md](ROADMAP-V2.md).
 
 Cada hallazgo indica el id de la regla, la severidad (`error` o `warning`), el fichero, la línea, la columna, el nombre del test y una frase explicando por qué importa.
 
@@ -94,7 +95,6 @@ La salida por defecto es una tabla seguida de un resumen de una línea:
 Un test cuenta como *cannot fail* cuando está saltado (incluidos los que están dentro de una suite saltada) o cuando tiene un hallazgo que, por sí solo, demuestra que no puede fallar.
 No todos los hallazgos lo demuestran: una aserción tautológica junto a otra real se reporta, pero el test sigue pudiendo fallar gracias a la otra, así que no cuenta.
 Los tests comentados se reportan, pero no están en el total de tests analizados porque no son código.
-`fragile-selector` y `happy-path-only` se reportan como hallazgos pero no cuentan para ese porcentaje: un test con un selector frágil sí puede fallar, el problema es que puede fallar por el motivo equivocado.
 
 | Código de salida | Significado |
 | --- | --- |

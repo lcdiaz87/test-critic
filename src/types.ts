@@ -2,15 +2,14 @@
 export const SEVERITIES = ['warning', 'error'] as const;
 export type Severity = (typeof SEVERITIES)[number];
 
+// fragile-selector and happy-path-only are planned for V2 (see ROADMAP-V2.md): neither makes a test a placebo.
 export const RULE_IDS = [
   'no-assertion',
   'tautological-assertion',
   'conditional-assertion',
   'missing-await',
   'swallowed-error',
-  'fragile-selector',
   'skipped-test',
-  'happy-path-only',
 ] as const;
 export type RuleId = (typeof RULE_IDS)[number];
 
