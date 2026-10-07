@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createStore, sum } from './math';
+import { createStore, getUser, loadUser, sum } from './math';
 
 describe('assertions that look similar but can fail', () => {
   it('compares a result with a literal', () => {
@@ -12,9 +12,25 @@ describe('assertions that look similar but can fail', () => {
     expect(first).toEqual(second);
   });
 
-  it('checks a memoised getter returns the same instance', () => {
+  it('checks a memoised getter returns the same instance, written clearly', () => {
     const store = createStore();
-    expect(store.state).toBe(store.state);
+    const first = store.state;
+    expect(store.state).toBe(first);
+  });
+
+  it('compares two calls, which may return different values', () => {
+    expect(getUser()).toEqual(getUser());
+  });
+
+  it('compares two different properties of the same object', () => {
+    const user = loadUser();
+    expect(user.billing.city).toBe(user.address.city);
+  });
+
+  it('compares an index read with a variable index against a different one', () => {
+    const user = loadUser();
+    const [i, j] = [0, 1];
+    expect(user.roles[i]).toBe(user.roles[j]);
   });
 
   it('compares zero with negative zero', () => {

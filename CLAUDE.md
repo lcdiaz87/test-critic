@@ -13,7 +13,7 @@ Es un proyecto de portfolio público y también está pensado para que otras per
 ## Arquitectura (no negociable)
 
 - **La capa determinista con AST (`ts-morph`) es el motor.** Todas las reglas del MVP viven aquí. Sin red, sin API keys, salida reproducible.
-- **Capa LLM opcional** detrás del flag explícito `--llm`, en un módulo aparte, nunca activa por defecto, solo para lo que el AST no alcanza. Si no hay API key, degrada limpiamente (resultado determinista + aviso por stderr).
+- **Capa LLM opcional** detrás del flag explícito `--llm`, en un módulo aparte, nunca activa por defecto, solo para lo que el AST no alcanza. Si no hay API key, degrada limpiamente (resultado determinista + aviso por stderr). **Aplazada a V2** (ver `ROADMAP-V2.md`); la decisión de diseño sigue vigente para cuando se retome.
 - El motivo, escrito en el README: *un detector que alucina hallazgos es peor que no tener detector*. Un falso positivo en una herramienta de calidad destruye la confianza en la herramienta.
 
 ## Cero falsos positivos antes que detectarlo todo
@@ -43,7 +43,7 @@ Ver `src/types.ts`.
 
 - **Recuento "cannot fail"** (porcentaje del resumen): un test cuenta si está **saltado** (también por estar dentro de una suite saltada) o tiene un hallazgo que *por sí solo* demuestra que no puede fallar (`RuleHit.makesTestUnableToFail`). Ejemplo: una tautología junto a una aserción real se reporta pero no cuenta.
 - **`no-assertion` es estricta:** un test sin aserción explícita es `error`, aunque haga acciones que puedan lanzar (p. ej. `click()` o `getBy*` de Playwright). Las aserciones implícitas no cuentan. Sí cuentan: `expect`/`assert`/`should` en la cadena del callee, helpers `expect*`/`assert*`, funciones del mismo fichero que aseveran o lanzan, `throw`, y `done(err)` / `done.fail` / pasar `done` a otra función (no en tests `.each`). Ver `src/engine/assertions.ts`.
-- **`tautological-assertion` no reporta accesos a propiedades** (`expect(a.b).toBe(a.b)`): un getter memoizado hace que sea un test legítimo. Solo literales y la misma variable simple en los dos lados.
+- **`tautological-assertion` reporta la misma lectura de datos en los dos lados:** variable, cadena de propiedades, índice literal o variable, `this` (`expect(a.b[0]).toBe(a.b[0])`). Decisión explícita: también el caso raro del getter memoizado; la forma recomendada de expresarlo es `const first = store.state; expect(store.state).toBe(first);`. Nunca reporta si hay llamadas (`expect(f()).toEqual(f())`).
 - **Ficheros con errores de sintaxis se saltan** con aviso por stderr; nunca se analizan árboles a medias.
 - **Un `it`/`test`/`describe` declarado localmente en el fichero** (no importado ni `require`) no se trata como runner.
 - **`missing-await` es sintáctica,** no usa el type checker: solo patrones conocidos (`expect().resolves/rejects`, matchers async de Playwright, métodos de `page`/`locator`, funciones `async` declaradas en el mismo fichero). Funciona en JS y sin las dependencias del proyecto auditado.
@@ -62,6 +62,8 @@ Ver `src/types.ts`.
 test-critic <glob...> [--json] [--format=table|json|sarif] [--llm] [--min-severity=X]
 ```
 
+- `--format=sarif` y `--llm` se aceptan pero están aplazados a V2: `sarif` termina con código 2 ("not implemented yet") y `--llm` avisa por stderr y ejecuta el análisis determinista.
+
 - Salida por defecto: tabla legible + línea de resumen final, exactamente con esta forma: `120 tests analysed · 34 cannot fail (28%) · 51 findings across 8 rules`
 - `--json` es un alias de `--format=json`; la forma del JSON es un **contrato estable** que procesan herramientas externas (incluir `schemaVersion`).
 - `--min-severity` filtra tanto lo que se reporta como lo que decide el código de salida.
@@ -76,14 +78,19 @@ Los fixtures están excluidos de tsc, ESLint y de la búsqueda de tests de Vites
 
 ## Fases (parar al final de cada una y enseñar el resultado)
 
-1. Andamiaje: repo, TS estricto, Vitest, ESLint, este fichero, README, CLI que parsea argumentos y resuelve globs. **(verificada)**
-2. Motor AST + `no-assertion`, `tautological-assertion`, `skipped-test`, con fixtures y tests. Tabla de salida funcionando. **(en revisión)**
-3. Las 3 reglas restantes (`conditional-assertion`, `missing-await`, `swallowed-error`), una a una, cada una con sus fixtures.
-4. Formatos de salida (`--json`, `sarif`) + GitHub Actions que corre los tests y ejecuta la CLI sobre los fixtures.
-5. Capa `--llm` opcional, aislada, degradando limpiamente sin API key.
-6. *(Opcional, después del MVP.)* Exponer test-critic como servidor MCP, para que un agente que genera tests pueda auditarlos antes de entregarlos.
+Se avanza en pasos pequeños, explicando cada pieza a medida que se crea, y se para entre pasos.
 
-**Al cerrar la fase 2**, antes de empezar la 3, crear en `.claude/`:
+1. Andamiaje: repo, TS estricto, Vitest, ESLint, este fichero, README, CLI que parsea argumentos y resuelve globs. **(hecha)**
+2. Motor AST + `no-assertion`, `tautological-assertion`, `skipped-test`, con fixtures y tests. Tabla de salida funcionando. **(hecha)**
+   - Revisión del alcance tras la fase 2: MVP centrado en tests placebo, lo demás a `ROADMAP-V2.md`, renombrado "cannot fail" → "placebo", sección sobre `eslint-plugin-jest` en el README. **(en curso)**
+3. Las 3 reglas restantes (`conditional-assertion`, `missing-await`, `swallowed-error`), una a una, cada una con sus fixtures, usando la skill `/new-rule` y el agente `fp-hunter`.
+4. **Parada:** decidir el corpus con quien mantiene el proyecto (ver "Pendiente de decidir").
+5. Salida `--json` (contrato estable con `schemaVersion`) + GitHub Actions que corre los tests y ejecuta la CLI sobre los fixtures.
+6. Construir el corpus, validarlo (Stryker, `eslint-plugin-jest`) y publicar el número.
+
+Fuera del MVP, en `ROADMAP-V2.md`: `fragile-selector`, `happy-path-only`, tests comentados, SARIF, capa `--llm` y servidor MCP.
+
+**Antes de empezar la fase 3**, crear en `.claude/`:
 
 - **Skill `/new-rule`:** fija el procedimiento para añadir una regla (fichero en `src/rules/`, fixtures que disparan y limpios, test de las dos direcciones, registro en el motor, fila en la tabla del README). Se crea a partir del patrón real de las tres primeras reglas, no antes.
 - **Agente `fp-hunter`:** subagente con contexto propio cuyo único objetivo es escribir código de test *correcto* que una regla marque por error. Cada caso que encuentre se convierte en fixture limpio y en un arreglo de la regla. Va aparte porque quien escribe la regla comparte sus puntos ciegos.

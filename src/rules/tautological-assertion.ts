@@ -21,11 +21,12 @@ const UNARY_MATCHERS: Record<string, (value: unknown) => boolean> = {
 /**
  * An assertion whose outcome is decided before the test runs: `expect(true).toBe(true)`, `expect(x).toEqual(x)`, `expect(1).toBeTruthy()`.
  *
- * Only two shapes are reported, because only these are guaranteed to pass:
+ * Two shapes are reported:
  * - literals on both sides (or a literal subject with a matcher like `toBeTruthy`);
- * - the same plain variable on both sides.
+ * - the same data on both sides: a variable, a property path or an index (`x`, `config.port`, `items[0]`), with no calls.
  *
- * Property accesses are deliberately left out. `expect(store.state).toBe(store.state)` reads a getter twice, and checking that a memoised getter returns the same instance is a legitimate test that can fail.
+ * Property paths are a deliberate choice: in the rare case of a memoised getter, `expect(store.state).toBe(store.state)` could be a real identity check.
+ * Reporting it is still the right call, because the intent is clearer written as `const first = store.state; expect(store.state).toBe(first);`, which this rule does not flag.
  * Assertions that can never pass (`expect(x).not.toBe(x)`, `expect(1).toBe(2)`) are broken too, but they fail loudly, so they are not this rule's concern.
  */
 export const tautologicalAssertion: Rule = {
@@ -64,8 +65,9 @@ function tautologyMessage(assertion: CallExpression): string | undefined {
 
   if (EQUALITY_MATCHERS.has(matcher) && matcherArgs.length === 1 && matcherArgs[0] !== undefined) {
     const expected = matcherArgs[0];
-    if (Node.isIdentifier(subject) && Node.isIdentifier(expected) && subject.getText() === expected.getText()) {
-      return `This assertion compares \`${subject.getText()}\` with itself, so it passes whatever the code under test does.`;
+    const path = referencePath(subject);
+    if (path !== undefined && path === referencePath(expected)) {
+      return `This assertion compares \`${path}\` with itself, so it passes whatever the code under test does.`;
     }
     const left = staticValue(subject);
     const right = staticValue(expected);
@@ -81,6 +83,30 @@ function tautologyMessage(assertion: CallExpression): string | undefined {
     if (value !== undefined && evaluate(value.value)) {
       return 'This assertion checks a literal value, so its result is fixed before the test runs.';
     }
+  }
+  return undefined;
+}
+
+/**
+ * A normalised path for an expression that only reads data: `total`, `config.port`, `items[0]`, `this.state`.
+ * Returns undefined as soon as a call appears, because `getUser()` may return a new value on each call and comparing two calls can fail.
+ * `config?.port` and `config.port` give the same path: when both sides read the same thing, the operator makes no difference.
+ */
+function referencePath(node: Node): string | undefined {
+  if (Node.isIdentifier(node)) return node.getText();
+  if (node.isKind(SyntaxKind.ThisKeyword)) return 'this';
+  if (Node.isParenthesizedExpression(node) || Node.isNonNullExpression(node)) return referencePath(node.getExpression());
+  if (Node.isPropertyAccessExpression(node)) {
+    const object = referencePath(node.getExpression());
+    return object === undefined ? undefined : `${object}.${node.getName()}`;
+  }
+  if (Node.isElementAccessExpression(node)) {
+    const object = referencePath(node.getExpression());
+    const index = node.getArgumentExpression();
+    if (object === undefined || index === undefined) return undefined;
+    // Only indices that cannot change between the two reads: a literal (`[0]`, `['id']`) or a plain variable (`[i]`).
+    const key = staticValue(index) !== undefined || Node.isIdentifier(index) ? index.getText() : undefined;
+    return key === undefined ? undefined : `${object}[${key}]`;
   }
   return undefined;
 }

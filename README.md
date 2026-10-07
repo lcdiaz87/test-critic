@@ -10,7 +10,7 @@ Built to audit AI-generated test suites, it favours zero false positives over re
 
 ---
 
-> **Estado:** en desarrollo. Ya funcionan `no-assertion`, `tautological-assertion` y `skipped-test` con la salida en tabla; el resto de reglas y los formatos `json` y `sarif` se están implementando.
+> **Estado:** en desarrollo. Ya funcionan `no-assertion`, `tautological-assertion` y `skipped-test` con la salida en tabla; el resto de reglas y la salida `json` se están implementando.
 > Todavía no está publicado en npm.
 
 ## El problema
@@ -70,7 +70,8 @@ Sí cuentan:
 
 Con la prioridad de cero falsos positivos, varias decisiones dejan pasar casos reales a propósito:
 
-- **`expect(obj.prop).toBe(obj.prop)` no se reporta.** Leer una propiedad dos veces puede ejecutar un getter dos veces, y comprobar que un getter memoizado devuelve la misma instancia es un test legítimo que sí puede fallar. Con variables simples (`expect(x).toBe(x)`) no hay esa ambigüedad.
+- **`expect(getUser()).toEqual(getUser())` no se reporta.** Cada llamada puede devolver un valor distinto, así que la comparación sí puede fallar. Las lecturas de datos sin llamadas (`expect(config.port).toBe(config.port)`, `expect(items[0]).toBe(items[0])`) sí se reportan.
+  Si de verdad quieres comprobar que un getter memoizado devuelve siempre la misma instancia, escríbelo así para que la intención quede clara y la regla no lo marque: `const first = store.state; expect(store.state).toBe(first);`.
 - **Si un fichero define su propio `it` o `test`**, sus llamadas no se tratan como tests: no sabemos qué hacen. Las importaciones, incluido `require`, sí se aceptan.
 - **Un fichero con errores de sintaxis se salta entero** y se avisa por stderr. El parser de TypeScript siempre devuelve un árbol aunque el código esté roto, y analizar un árbol a medias es la forma más fácil de inventarse hallazgos.
 - **Los skips condicionales no se reportan:** `test.skip(browserName === 'webkit', 'motivo')` en Playwright o `it.skipIf(cond)` en Vitest son decisiones deliberadas según el entorno.
@@ -78,7 +79,7 @@ Con la prioridad de cero falsos positivos, varias decisiones dejan pasar casos r
 ## Uso
 
 ```
-test-critic <glob...> [--format=table|json|sarif] [--json] [--min-severity=warning|error] [--llm]
+test-critic <glob...> [--format=table|json] [--json] [--min-severity=warning|error]
 ```
 
 ```sh
@@ -108,8 +109,8 @@ Todas las reglas se ejecutan sobre una **capa determinista basada en el AST**, c
 El AST (árbol de sintaxis abstracta) es la representación estructurada del código que usa el propio compilador de TypeScript: en lugar de buscar texto con expresiones regulares, la herramienta recorre llamadas, bloques y expresiones reales.
 No necesita red ni API keys, y la misma entrada produce siempre la misma salida.
 
-Existe una **capa LLM opcional** para las pocas preguntas que el AST no puede responder.
-Vive en su propio módulo, solo se activa con el flag explícito `--llm`, nunca está activa por defecto, y si no hay API key configurada devuelve el resultado determinista sin más.
+Para una versión posterior está prevista una **capa LLM opcional** para las pocas preguntas que el AST no puede responder (ver [ROADMAP-V2.md](ROADMAP-V2.md)).
+Vivirá en su propio módulo, solo se activará con el flag explícito `--llm`, nunca estará activa por defecto, y si no hay API key configurada devolverá el resultado determinista sin más.
 
 El motivo de esta separación:
 
