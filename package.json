@@ -1,7 +1,7 @@
 {
   "name": "test-critic",
   "version": "0.1.0",
-  "description": "Find tests that cannot fail: static analysis for Jest, Vitest and Playwright test suites.",
+  "description": "Find placebo tests, tests that pass whatever the code does: static analysis for Jest, Vitest and Playwright test suites.",
   "keywords": [
     "testing",
     "static-analysis",

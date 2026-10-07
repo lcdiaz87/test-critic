@@ -40,10 +40,10 @@ export const tautologicalAssertion: Rule = {
         const message = Node.isCallExpression(site.node) ? tautologyMessage(site.node) : undefined;
         return message === undefined ? [] : [{ node: site.node, message }];
       });
-      // The test cannot fail only when every way it has of failing is a tautology.
+      // The test is a placebo only when every way it has of failing is a tautology.
       const allTautological = tautologies.length === sites.length;
       for (const { node, message } of tautologies) {
-        hits.push({ pos: node.getStart(), test, message, makesTestUnableToFail: allTautological });
+        hits.push({ pos: node.getStart(), test, message, provesPlacebo: allTautological });
       }
     }
     return hits;

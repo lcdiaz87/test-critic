@@ -69,7 +69,7 @@ describe('main', () => {
   it('prints only the summary and exits 0 when nothing is wrong', async () => {
     const result = await runCli(['clean.test.ts'], project.dir);
     expect(result.exitCode).toBe(EXIT_OK);
-    expect(result.stdout).toBe('1 test analysed · 0 cannot fail (0%) · 0 findings across 0 rules\n');
+    expect(result.stdout).toBe('1 test analysed · 0 placebo (0%) · 0 findings across 0 rules\n');
   });
 
   it('prints the table and the summary, and exits 1 when there is an error-severity finding', async () => {
@@ -83,7 +83,7 @@ describe('main', () => {
         '  5:1  warning  skipped-test  later',
         '       This test is skipped, so it never runs and cannot catch a regression.',
         '',
-        '2 tests analysed · 2 cannot fail (100%) · 2 findings across 2 rules',
+        '2 tests analysed · 2 placebo (100%) · 2 findings across 2 rules',
         '',
       ),
     );
@@ -92,14 +92,14 @@ describe('main', () => {
   it('exits 0 when every finding is a warning', async () => {
     const result = await runCli(['skipped.spec.js'], project.dir);
     expect(result.exitCode).toBe(EXIT_OK);
-    expect(result.stdout).toContain('1 test analysed · 1 cannot fail (100%) · 1 finding across 1 rule');
+    expect(result.stdout).toContain('1 test analysed · 1 placebo (100%) · 1 finding across 1 rule');
   });
 
-  it('hides warnings with --min-severity=error but keeps the cannot-fail headline', async () => {
+  it('hides warnings with --min-severity=error but keeps the placebo headline', async () => {
     const result = await runCli(['weak.test.ts', '--min-severity=error'], project.dir);
     expect(result.exitCode).toBe(EXIT_FINDINGS);
     expect(result.stdout).not.toContain('skipped-test');
-    expect(result.stdout).toContain('2 tests analysed · 2 cannot fail (100%) · 1 finding across 1 rule');
+    expect(result.stdout).toContain('2 tests analysed · 2 placebo (100%) · 1 finding across 1 rule');
   });
 
   it('warns about files that do not parse and analyses the rest', async () => {

@@ -29,9 +29,9 @@ describe('tautological-assertion', () => {
     });
   });
 
-  it('only counts a test as unable to fail when all of its assertions are tautological', () => {
+  it('only counts a test as a placebo when all of its assertions are tautological', () => {
     // 9 tests, but "hides a tautology next to a real assertion" also has a real assertion and can still fail.
-    expect(analyzeFixture('tautological-assertion/triggers.test.ts')).toMatchObject({ testCount: 9, cannotFailCount: 8 });
+    expect(analyzeFixture('tautological-assertion/triggers.test.ts')).toMatchObject({ testCount: 9, placeboCount: 8 });
   });
 
   it('stays silent on calls, different values and assertions that always fail', () => {

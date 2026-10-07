@@ -23,10 +23,10 @@ export interface RuleHit {
   title?: string | null;
   message: string;
   /**
-   * True when this hit alone proves the test cannot fail.
+   * True when this hit alone proves the test is a placebo: it passes whatever the code under test does.
    * A tautological assertion next to a real one is still worth reporting, but the test can fail, so it does not count towards the summary percentage.
    */
-  makesTestUnableToFail: boolean;
+  provesPlacebo: boolean;
 }
 
 export interface Rule {

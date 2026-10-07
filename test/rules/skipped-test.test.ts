@@ -30,9 +30,9 @@ describe('skipped-test', () => {
     expect(finding).toMatchObject({ severity: 'warning', message: 'This suite is skipped, so its 2 tests never run.' });
   });
 
-  it('counts skipped tests, including those inside skipped suites, as unable to fail', () => {
+  it('counts skipped tests, including those inside skipped suites, as placebos', () => {
     // 6 declared tests; only "still runs" can fail.
-    expect(analyzeFixture('skipped-test/triggers.test.ts')).toMatchObject({ testCount: 6, cannotFailCount: 5 });
+    expect(analyzeFixture('skipped-test/triggers.test.ts')).toMatchObject({ testCount: 6, placeboCount: 5 });
   });
 
   it.each([

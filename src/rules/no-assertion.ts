@@ -17,6 +17,6 @@ export const noAssertion: Rule = {
         pos: test.call.getStart(),
         test,
         message: 'This test has no assertion, so it passes whatever the code under test does.',
-        makesTestUnableToFail: true,
+        provesPlacebo: true,
       })),
 };

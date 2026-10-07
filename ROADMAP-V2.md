@@ -1,6 +1,6 @@
 # Roadmap V2
 
-El MVP se centra en una sola pregunta: **¿qué porcentaje de una suite de tests no puede fallar?**
+El MVP se centra en una sola pregunta: **¿qué porcentaje de una suite son tests placebo, que siguen en verde haga lo que haga el código?**
 Todo lo que no ayuda a responderla, o a publicar ese número de forma defendible, se ha aplazado a V2.
 Este documento recoge qué se ha aplazado, por qué, y lo que hay que tener en cuenta al retomarlo.
 
@@ -11,7 +11,7 @@ Este documento recoge qué se ha aplazado, por qué, y lo que hay que tener en c
 Detectaría selectores frágiles en tests de Playwright: `nth-child`, XPath absolutos (`/html/body/div[2]/...`), rutas CSS profundas (`div > div > span`) o índices posicionales (`.nth(3)`, `.first()` sin filtro).
 
 **Por qué se aplaza:** un test con un selector frágil *sí puede fallar*, el problema es que falla por el motivo equivocado (un cambio de maquetación, no un bug).
-No suma al porcentaje de "cannot fail", así que no aporta nada al número del MVP.
+No es un test placebo, así que no aporta nada al número del MVP.
 
 **A tener en cuenta:** es la regla con más riesgo de falsos positivos.
 `.first()` o `.nth(0)` son legítimos cuando la lista está ordenada a propósito, y un selector CSS largo puede ser estable si usa atributos de test.

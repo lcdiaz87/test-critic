@@ -23,7 +23,7 @@ export class UsageError extends Error {
 
 export const USAGE = `Usage: test-critic <glob...> [options]
 
-Find tests that cannot fail in Jest, Vitest and Playwright test files.
+Find placebo tests in Jest, Vitest and Playwright test files: tests that pass whatever the code does.
 
 Options:
   --format <table|json|sarif>      Output format (default: table)

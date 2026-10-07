@@ -26,8 +26,8 @@ describe('no-assertion', () => {
     });
   });
 
-  it('counts every reported test as unable to fail', () => {
-    expect(analyzeFixture('no-assertion/triggers.test.ts')).toMatchObject({ testCount: 5, cannotFailCount: 5 });
+  it('counts every reported test as a placebo', () => {
+    expect(analyzeFixture('no-assertion/triggers.test.ts')).toMatchObject({ testCount: 5, placeboCount: 5 });
   });
 
   // Each clean fixture must contain tests; otherwise "no findings" would prove nothing.

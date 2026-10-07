@@ -8,7 +8,7 @@ import type { Rule, RuleHit } from './rule.js';
  * Runtime skips such as Playwright's `test.skip(browserName === 'webkit', 'reason')` or Vitest's `it.skipIf(cond)` are conditional by design and are not reported.
  *
  * Severity is `warning`: skipping is often deliberate and temporary, and a CI pipeline should not break because of it.
- * It still counts towards "cannot fail", because while skipped, the test protects nothing.
+ * It still counts as a placebo, because while skipped, the test protects nothing.
  */
 export const skippedTest: Rule = {
   id: 'skipped-test',
@@ -23,7 +23,7 @@ export const skippedTest: Rule = {
         pos: suite.call.getStart(),
         title: suite.title,
         message: `This suite is skipped, so its ${String(inside)} ${inside === 1 ? 'test never runs' : 'tests never run'}.`,
-        makesTestUnableToFail: false,
+        provesPlacebo: false,
       });
     }
 
@@ -36,7 +36,7 @@ export const skippedTest: Rule = {
           test.skip === 'todo'
             ? 'This test is a placeholder with no body, so it cannot catch a regression.'
             : 'This test is skipped, so it never runs and cannot catch a regression.',
-        makesTestUnableToFail: true,
+        provesPlacebo: true,
       });
     }
     return hits;

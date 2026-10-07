@@ -2,20 +2,20 @@ import type { Finding } from '../types.js';
 
 export interface Summary {
   tests: number;
-  cannotFail: number;
+  placebos: number;
   findings: number;
   rules: number;
 }
 
 /**
- * `120 tests analysed · 34 cannot fail (28%) · 51 findings across 8 rules`
+ * `120 tests analysed · 34 placebo (28%) · 51 findings across 6 rules`
  * This line is the project's headline, so its shape is part of the CLI contract.
  */
 export function formatSummary(summary: Summary): string {
-  const percent = summary.tests === 0 ? 0 : Math.round((summary.cannotFail / summary.tests) * 100);
+  const percent = summary.tests === 0 ? 0 : Math.round((summary.placebos / summary.tests) * 100);
   return [
     `${plural(summary.tests, 'test')} analysed`,
-    `${String(summary.cannotFail)} cannot fail (${String(percent)}%)`,
+    `${String(summary.placebos)} placebo (${String(percent)}%)`,
     `${plural(summary.findings, 'finding')} across ${plural(summary.rules, 'rule')}`,
   ].join(' · ');
 }

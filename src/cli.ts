@@ -74,8 +74,8 @@ async function run(options: CliOptions, io: CliIO): Promise<number> {
   io.stdout(
     `${formatSummary({
       tests: sum(result.files.map((file) => file.testCount)),
-      // The headline counts every test that cannot fail, whatever --min-severity hides from the table.
-      cannotFail: sum(result.files.map((file) => file.cannotFailCount)),
+      // The headline counts every placebo test, whatever --min-severity hides from the table.
+      placebos: sum(result.files.map((file) => file.placeboCount)),
       findings: findings.length,
       rules: new Set(findings.map((finding) => finding.ruleId)).size,
     })}\n`,

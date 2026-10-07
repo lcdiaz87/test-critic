@@ -1,9 +1,10 @@
 # test-critic
 
-**Find tests that cannot fail.**
+**Find placebo tests: tests that pass whatever the code does.**
 
 `test-critic` is a static analyser for Jest, Vitest and Playwright test files (TypeScript and JavaScript).
-It flags tests that add coverage without reducing risk: no assertion, tautological assertions, assertions that may never run, un-awaited promises, swallowed errors.
+A placebo test looks like a test and runs like a test, but has no effect: it adds coverage without reducing risk.
+The usual causes are a missing assertion, a tautological assertion, an assertion that may never run, an un-awaited promise or a swallowed error.
 Built to audit AI-generated test suites, it favours zero false positives over recall, and runs fully offline on a deterministic AST engine.
 
 *The rest of this document is in Spanish.*
@@ -34,6 +35,8 @@ it('parses the config', async () => {
 La aserción es tautológica (compara un valor consigo mismo), está detrás de una condición que puede ser falsa, y cualquier excepción se captura y solo se imprime.
 Alguien que revise por encima un fichero de 400 líneas de tests generados no lo va a ver.
 Una herramienta sí.
+
+A este tipo de test lo llamamos **test placebo**: tiene la forma de un test y se ejecuta como un test, pero no tiene efecto, porque sigue en verde haga lo que haga el código.
 
 Este patrón es especialmente frecuente en tests generados por IA: la suite está en verde, el coverage es alto, y una parte importante de los tests seguiría en verde hiciera lo que hiciera el código que dicen probar.
 
@@ -89,10 +92,10 @@ npx test-critic "src/**/*.test.ts" "e2e/**/*.spec.ts"
 La salida por defecto es una tabla seguida de un resumen de una línea:
 
 ```
-120 tests analysed · 34 cannot fail (28%) · 51 findings across 8 rules
+120 tests analysed · 34 placebo (28%) · 51 findings across 6 rules
 ```
 
-Un test cuenta como *cannot fail* cuando está saltado (incluidos los que están dentro de una suite saltada) o cuando tiene un hallazgo que, por sí solo, demuestra que no puede fallar.
+Un test cuenta como *placebo* cuando está saltado (incluidos los que están dentro de una suite saltada) o cuando tiene un hallazgo que, por sí solo, demuestra que seguirá en verde haga lo que haga el código.
 No todos los hallazgos lo demuestran: una aserción tautológica junto a otra real se reporta, pero el test sigue pudiendo fallar gracias a la otra, así que no cuenta.
 
 | Código de salida | Significado |

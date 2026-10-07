@@ -1,6 +1,6 @@
 # test-critic: contexto del proyecto
 
-CLI en TypeScript que analiza estáticamente ficheros de test (Jest / Vitest / Playwright, en TS y JS) y detecta **tests que no pueden fallar**: los que suman cobertura pero no reducen riesgo.
+CLI en TypeScript que analiza estáticamente ficheros de test (Jest / Vitest / Playwright, en TS y JS) y detecta **tests placebo**: los que siguen en verde haga lo que haga el código, así que suman cobertura sin reducir riesgo.
 Está pensada para auditar tests generados por IA.
 Es un proyecto de portfolio público y también está pensado para que otras personas aprendan de él: el código, los comentarios y la documentación deben explicar el *porqué* (por qué un patrón no puede fallar, por qué se tomó una decisión de diseño), no solo el *qué*.
 
@@ -41,7 +41,7 @@ Ver `src/types.ts`.
 
 ### Decisiones ya tomadas
 
-- **Recuento "cannot fail"** (porcentaje del resumen): un test cuenta si está **saltado** (también por estar dentro de una suite saltada) o tiene un hallazgo que *por sí solo* demuestra que no puede fallar (`RuleHit.makesTestUnableToFail`). Ejemplo: una tautología junto a una aserción real se reporta pero no cuenta.
+- **Recuento de tests placebo** (porcentaje del resumen): un test cuenta si está **saltado** (también por estar dentro de una suite saltada) o tiene un hallazgo que *por sí solo* demuestra que no puede fallar (`RuleHit.provesPlacebo`). Ejemplo: una tautología junto a una aserción real se reporta pero no cuenta.
 - **`no-assertion` es estricta:** un test sin aserción explícita es `error`, aunque haga acciones que puedan lanzar (p. ej. `click()` o `getBy*` de Playwright). Las aserciones implícitas no cuentan. Sí cuentan: `expect`/`assert`/`should` en la cadena del callee, helpers `expect*`/`assert*`, funciones del mismo fichero que aseveran o lanzan, `throw`, y `done(err)` / `done.fail` / pasar `done` a otra función (no en tests `.each`). Ver `src/engine/assertions.ts`.
 - **`tautological-assertion` reporta la misma lectura de datos en los dos lados:** variable, cadena de propiedades, índice literal o variable, `this` (`expect(a.b[0]).toBe(a.b[0])`). Decisión explícita: también el caso raro del getter memoizado; la forma recomendada de expresarlo es `const first = store.state; expect(store.state).toBe(first);`. Nunca reporta si hay llamadas (`expect(f()).toEqual(f())`).
 - **Ficheros con errores de sintaxis se saltan** con aviso por stderr; nunca se analizan árboles a medias.
@@ -49,7 +49,7 @@ Ver `src/types.ts`.
 - **`missing-await` es sintáctica,** no usa el type checker: solo patrones conocidos (`expect().resolves/rejects`, matchers async de Playwright, métodos de `page`/`locator`, funciones `async` declaradas en el mismo fichero). Funciona en JS y sin las dependencias del proyecto auditado.
 - Recuento de tests: cada llamada `it`/`test` cuenta una vez; `it.each(...)` cuenta una vez.
 
-- **Nombre del concepto: "placebo tests"** (en español, "tests placebo"): tienen la forma de un test pero no tienen efecto, siguen en verde haga lo que haga el código. Sustituye a "cannot fail" en README, resumen de la CLI (`120 tests analysed · 34 placebo (28%) · ...`) y nombres internos. Se descartó "fake tests" porque *fake* ya es un tipo de doble de prueba (como mock o stub). El renombrado está pendiente como paso propio.
+- **Nombre del concepto: "placebo tests"** (en español, "tests placebo"): tienen la forma de un test pero no tienen efecto, siguen en verde haga lo que haga el código. Sustituyó a "cannot fail" en README, resumen de la CLI y nombres internos (`placeboCount`, `provesPlacebo`). Se descartó "fake tests" porque *fake* ya es un tipo de doble de prueba (como mock o stub).
 - **El proyecto mide, no solo detecta.** `eslint-plugin-jest` ya tiene reglas parecidas (`expect-expect`, `no-conditional-expect`, `no-disabled-tests`, `valid-expect`); lo que aporta test-critic es el porcentaje de tests placebo de una suite y el estudio sobre tests generados por IA. El README tendrá una sección "¿Por qué no basta con eslint-plugin-jest?".
 
 ### Pendiente de decidir
@@ -64,7 +64,7 @@ test-critic <glob...> [--json] [--format=table|json|sarif] [--llm] [--min-severi
 
 - `--format=sarif` y `--llm` se aceptan pero están aplazados a V2: `sarif` termina con código 2 ("not implemented yet") y `--llm` avisa por stderr y ejecuta el análisis determinista.
 
-- Salida por defecto: tabla legible + línea de resumen final, exactamente con esta forma: `120 tests analysed · 34 cannot fail (28%) · 51 findings across 8 rules`
+- Salida por defecto: tabla legible + línea de resumen final, exactamente con esta forma: `120 tests analysed · 34 placebo (28%) · 51 findings across 6 rules`
 - `--json` es un alias de `--format=json`; la forma del JSON es un **contrato estable** que procesan herramientas externas (incluir `schemaVersion`).
 - `--min-severity` filtra tanto lo que se reporta como lo que decide el código de salida.
 - Códigos de salida: `0` sin hallazgos `error`, `1` con al menos uno, `2` error de ejecución (argumentos inválidos, ningún fichero, fallo interno).

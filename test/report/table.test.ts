@@ -4,17 +4,17 @@ import type { Finding } from '../../src/types.js';
 
 describe('formatSummary', () => {
   it('matches the headline format of the CLI contract', () => {
-    expect(formatSummary({ tests: 120, cannotFail: 34, findings: 51, rules: 8 })).toBe(
-      '120 tests analysed · 34 cannot fail (28%) · 51 findings across 8 rules',
+    expect(formatSummary({ tests: 120, placebos: 34, findings: 51, rules: 6 })).toBe(
+      '120 tests analysed · 34 placebo (28%) · 51 findings across 6 rules',
     );
   });
 
   it('uses singular nouns for one and avoids dividing by zero', () => {
-    expect(formatSummary({ tests: 1, cannotFail: 1, findings: 1, rules: 1 })).toBe(
-      '1 test analysed · 1 cannot fail (100%) · 1 finding across 1 rule',
+    expect(formatSummary({ tests: 1, placebos: 1, findings: 1, rules: 1 })).toBe(
+      '1 test analysed · 1 placebo (100%) · 1 finding across 1 rule',
     );
-    expect(formatSummary({ tests: 0, cannotFail: 0, findings: 0, rules: 0 })).toBe(
-      '0 tests analysed · 0 cannot fail (0%) · 0 findings across 0 rules',
+    expect(formatSummary({ tests: 0, placebos: 0, findings: 0, rules: 0 })).toBe(
+      '0 tests analysed · 0 placebo (0%) · 0 findings across 0 rules',
     );
   });
 });

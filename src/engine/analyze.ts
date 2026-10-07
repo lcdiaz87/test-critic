@@ -9,8 +9,8 @@ export interface FileAnalysis {
   file: string;
   /** Test declarations found in the file. */
   testCount: number;
-  /** Tests that are skipped or have at least one finding that alone proves they cannot fail. */
-  cannotFailCount: number;
+  /** Placebo tests: skipped, or with at least one finding that alone proves they pass whatever the code does. */
+  placeboCount: number;
   findings: Finding[];
 }
 
@@ -46,11 +46,11 @@ export function analyzeSources(inputs: readonly SourceInput[], rules: readonly R
       },
     };
 
-    const unableToFail = new Set(inventory.tests.filter((test) => test.skipped));
+    const placebos = new Set(inventory.tests.filter((test) => test.skipped));
     const findings: Finding[] = [];
     for (const rule of rules) {
       for (const hit of rule.check(context)) {
-        if (hit.makesTestUnableToFail && hit.test !== undefined) unableToFail.add(hit.test);
+        if (hit.provesPlacebo && hit.test !== undefined) placebos.add(hit.test);
         const { line, column } = sourceFile.getLineAndColumnAtPos(hit.pos);
         findings.push({
           ruleId: rule.id,
@@ -67,7 +67,7 @@ export function analyzeSources(inputs: readonly SourceInput[], rules: readonly R
     files.push({
       file,
       testCount: inventory.tests.length,
-      cannotFailCount: unableToFail.size,
+      placeboCount: placebos.size,
       findings: findings.sort(compareFindings),
     });
   }
