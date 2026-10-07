@@ -50,7 +50,7 @@ Ver `src/types.ts`.
 - Recuento de tests: cada llamada `it`/`test` cuenta una vez; `it.each(...)` cuenta una vez.
 
 - **Nombre del concepto: "placebo tests"** (en español, "tests placebo"): tienen la forma de un test pero no tienen efecto, siguen en verde haga lo que haga el código. Sustituyó a "cannot fail" en README, resumen de la CLI y nombres internos (`placeboCount`, `provesPlacebo`). Se descartó "fake tests" porque *fake* ya es un tipo de doble de prueba (como mock o stub).
-- **El proyecto mide, no solo detecta.** `eslint-plugin-jest` ya tiene reglas parecidas (`expect-expect`, `no-conditional-expect`, `no-disabled-tests`, `valid-expect`); lo que aporta test-critic es el porcentaje de tests placebo de una suite y el estudio sobre tests generados por IA. El README tendrá una sección "¿Por qué no basta con eslint-plugin-jest?".
+- **El proyecto mide, no solo detecta.** `eslint-plugin-jest` ya tiene reglas parecidas (`expect-expect`, `no-conditional-expect`, `no-disabled-tests`, `valid-expect`); lo que aporta test-critic es el porcentaje de tests placebo de una suite y el estudio sobre tests generados por IA. El README lo explica en la sección "¿Por qué no basta con eslint-plugin-jest?" (verificado contra su documentación: no tiene regla de tautologías ni de catch que se traga errores, y `expect-expect` solo reconoce `expect` por defecto).
 
 ### Pendiente de decidir
 

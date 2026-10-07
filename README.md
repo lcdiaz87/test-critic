@@ -125,6 +125,33 @@ Por eso `test-critic` prioriza **cero falsos positivos** por encima de detectarl
 Una regla que no se puede implementar sin falsos positivos se deja fuera, no se relaja.
 Ante la duda, la herramienta no dice nada.
 
+## ¿Por qué no basta con eslint-plugin-jest?
+
+[`eslint-plugin-jest`](https://github.com/jest-community/eslint-plugin-jest) es una buena herramienta y, si ya la usas en el editor, conviene mantenerla.
+test-critic no la sustituye, y varias reglas se parecen a propósito: `expect-expect`, `no-conditional-expect`, `no-disabled-tests` y `valid-expect` cubren patrones parecidos a los de aquí.
+La diferencia está en qué pregunta responde cada una.
+
+**Un linter pregunta "¿hay algo sospechoso en esta línea?"; test-critic pregunta "¿qué parte de esta suite son tests placebo?".**
+Para responder a la segunda hay que razonar por test, no por línea.
+Un test con tres hallazgos cuenta una sola vez.
+Una aserción tautológica junto a una real se reporta, pero no convierte el test en placebo, porque la otra aserción todavía puede fallar.
+Un test dentro de un `describe.skip` es placebo aunque no tenga ningún aviso propio.
+
+**Detecta patrones que el plugin no cubre.**
+`eslint-plugin-jest` no tiene ninguna regla para aserciones tautológicas (`expect(x).toBe(x)`), y tampoco para errores que un `catch` se traga sin comprobar nada, que test-critic detectará con `swallowed-error`.
+
+**Cero falsos positivos sin configurar nada.**
+La regla `expect-expect` solo reconoce `expect` por defecto, así que un test que usa `assert.equal(...)`, chai o `sinon.assert` aparece como "sin aserción" hasta que se configura a mano.
+test-critic reconoce de serie `expect`, `assert`, `should`, `sinon.assert`, los helpers `expect*` / `assert*` y un `done(err)`.
+Cuando se audita código que no has escrito, como una suite generada por IA, no es práctico ajustar la configuración repositorio a repositorio.
+
+**Un solo instrumento para Jest, Vitest y Playwright.**
+Con ESLint, cada framework tiene su propio plugin con sus propias reglas, y hace falta la configuración de ESLint del proyecto auditado.
+test-critic se ejecuta sobre cualquier carpeta de tests sin instalar nada en ese proyecto.
+
+**Y lo vamos a medir, no solo a afirmar.**
+En el estudio sobre tests generados por IA pasaremos las dos herramientas sobre el mismo corpus y publicaremos la comparación, incluido lo que `eslint-plugin-jest` detecte y test-critic no.
+
 ## Una suite de tests que sí puede fallar
 
 Una herramienta que audita tests necesita tests que puedan fallar.
